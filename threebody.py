@@ -220,7 +220,10 @@ def simulate(
         events=events,
     )
 
-    states = sol.y.T                              # (K, 12), K <= len(t_eval)
+    if np.asarray(sol.y).size == 0:
+        states = np.empty((0, N_BODIES * DIM * 2))
+    else:
+        states = np.asarray(sol.y).T             # (K, 12), K <= len(t_eval)
     pos = states[:, : N_BODIES * DIM].reshape(-1, N_BODIES, DIM)
     vel = states[:, N_BODIES * DIM :].reshape(-1, N_BODIES, DIM)
 

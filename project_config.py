@@ -20,7 +20,7 @@ from observation import make_observation_times
 from threebody import default_masses
 
 
-DEFAULT_ARTIFACT_DIR = Path("checkpoints_v2")
+DEFAULT_ARTIFACT_DIR = Path("checkpoints_report")
 DEFAULT_CONFIG_PATH = DEFAULT_ARTIFACT_DIR / "config.json"
 DEFAULT_DATA_PATH = DEFAULT_ARTIFACT_DIR / "training_data.npz"
 DEFAULT_MODEL_PATH = DEFAULT_ARTIFACT_DIR / "npe_threebody.keras"

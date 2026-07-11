@@ -15,12 +15,30 @@ from project_config import DEFAULT_CONFIG_PATH, DEFAULT_MODEL_PATH, ProjectConfi
 
 def load_approximator(model_path: str | Path = DEFAULT_MODEL_PATH):
     try:
+        from bayesflow.adapters import Adapter
+        from bayesflow.adapters.transforms import ConvertDType, FilterTransform, Rename
+        from bayesflow.approximators.continuous_approximator import ContinuousApproximator
+        from bayesflow.distributions import DiagonalNormal
+        from bayesflow.networks import CouplingFlow, TimeSeriesNetwork
         import keras
     except ImportError as exc:
         raise ImportError(
-            "Keras is required to load the trained BayesFlow approximator."
+            "BayesFlow and Keras are required to load the trained approximator."
         ) from exc
-    return keras.saving.load_model(model_path)
+
+    custom_objects = {
+        "Adapter": Adapter,
+        "ContinuousApproximator": ContinuousApproximator,
+        "ConvertDType": ConvertDType,
+        "CouplingFlow": CouplingFlow,
+        "DiagonalNormal": DiagonalNormal,
+        "FilterTransform": FilterTransform,
+        "Rename": Rename,
+        "TimeSeriesNetwork": TimeSeriesNetwork,
+    }
+    return keras.saving.load_model(
+        model_path, custom_objects=custom_objects, safe_mode=False
+    )
 
 
 def load_config(config_path: str | Path = DEFAULT_CONFIG_PATH) -> ProjectConfig:

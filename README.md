@@ -1,6 +1,6 @@
 # Three-Body NPE - Handoff Notes
 
-Hey team, here's where things stand. Simulator and data pipeline are done, network is trained. This doc should get you set up and moving on diagnostics/inference without having to reverse-engineer everything.
+The current final pipeline now lives under `checkpoints_report/`. This version keeps the key inverse-problem fix from the earlier draft, namely that observations start strictly after `t = 0`, and it upgrades the corrected smoke run to a stronger 20k-sample training run plus larger held-out diagnostics.
 
 ## Setup
 
@@ -27,17 +27,31 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 **observation.py** - adds observation noise to a clean trajectory to produce y. `simulate_observation()` is the full theta -> y pipeline.
 
-**generate_dataset.py / train_npe.py** - how the trained model was actually produced. You probably won't rerun these, but they're the record of exactly what settings were used (prior ranges, noise scales, network architecture, training budget). Useful if you need to retrain or extend later.
+**project_config.py** - single source of truth for masses, noise scales, solver tolerances, and the exact observation-time grid used everywhere.
 
-**checkpoints/npe_threebody.keras** - the trained network. Load it with:
+**generate_dataset.py / train_npe.py** - regenerate the strict post-`t=0` dataset and retrain the BayesFlow model. These now default to `checkpoints_report/`.
+
+**infer_posterior.py** - load the trained model, generate or read one observation, sample the posterior, and save a summary figure.
+
+**evaluate_posterior.py** - runs the compulsory diagnostics: held-out recovery, SBC rank histograms, and posterior predictive checks.
+
+**checkpoints_report/npe_threebody.keras** - the current stronger corrected network. Load it with:
 ```python
-import keras
-approximator = keras.saving.load_model("checkpoints/npe_threebody.keras")
+from posterior_utils import load_approximator
+approximator = load_approximator("checkpoints_report/npe_threebody.keras")
 ```
 
-**checkpoints/training_data.npz** - the (theta, y) pairs used for training. Has `theta` and `y` arrays if you want to inspect or reuse them instead of regenerating.
+**checkpoints_report/training_data.npz** - the corrected 20k-sample `(theta, y)` dataset used for the stronger report-scale training run.
 
-**checkpoints/config.json** - T, K, masses, noise scales, prior ranges. Important: any new observation you build for testing/diagnostics has to use these exact same settings, otherwise the model's output is meaningless. Treat this as the source of truth.
+**checkpoints_report/config.json** - T, K, masses, noise scales, prior ranges, and the exact `observation_times`. Any new observation used for inference or diagnostics must match this file.
+
+**checkpoints_v2/** - corrected but smaller smoke-run artifacts from the earlier 5k-sample retraining pass. Useful as a benchmark, but not the main final result anymore.
+
+**checkpoints/** - legacy artifacts from the earlier version that included `t = 0` in the observation grid. Keep them only for reference, not for the final project story.
+
+**results_diagnostics_report/** - report-scale held-out recovery, SBC, and PPC outputs for the stronger model.
+
+**results_inference_report/** - saved posterior examples for the stronger model, including a harder held-out case.
 
 ## Getting posterior samples
 
@@ -47,14 +61,26 @@ posterior = approximator.sample(num_samples=1000, conditions={"y": your_y_array}
 ```
 `your_y_array` needs a batch dimension, so shape `(1, 20, 12)` for one observation. Output is a dict, `posterior["theta"]` will be shape `(1, 1000, 8)`.
 
-Build test observations the same way training data was made: draw a theta with `priors.py`, simulate with `threebody.py`, add noise with `observation.py`, using the settings from `config.json`.
+Build test observations the same way training data was made: draw a theta with `priors.py`, simulate with `threebody.py`, add noise with `observation.py`, using the settings from `checkpoints_report/config.json`.
 
-## What's next
+Convenience commands:
+```bash
+python3 infer_posterior.py --config checkpoints_report/config.json --model checkpoints_report/npe_threebody.keras
+python3 evaluate_posterior.py --config checkpoints_report/config.json --model checkpoints_report/npe_threebody.keras
+```
 
-This is basically Workstream D at this point:
-- SBC: run this on many simulated test cases, check the rank histograms are flat (calibration check)
-- Recovery: does the posterior mean land near the true theta on held-out simulated data
-- Posterior predictive checks
-- The interesting part: characterizing when/why the posterior comes out wide or multimodal, and making the case that's the correct answer given the chaos, not a failure
+## Current status
+
+The compulsory implementation pipeline is complete, and the report-scale follow-up run is complete too:
+- corrected dataset regenerated with strict post-`t=0` observations
+- stronger 20k-sample dataset and trained model saved in `checkpoints_report/`
+- larger held-out diagnostics saved in `results_diagnostics_report/`
+- harder-case posterior example saved in `results_inference_report/`
+
+What is still optional:
+- extend the whole pipeline from 2D to 3D
+- push experiments beyond the current report-scale run if you want even stronger final figures
+
+For the full professor-vs-done checklist and the scientific interpretation, see `PROJECT_STATUS_REPORT.md`.
 
 Ping me if anything about the simulator/data side is unclear, happy to walk through it.

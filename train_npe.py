@@ -10,6 +10,7 @@ from pathlib import Path
 
 os.environ.setdefault("KERAS_BACKEND", "tensorflow")
 os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+os.environ.setdefault("MPLCONFIGDIR", "/private/tmp/matplotlib")
 
 import bayesflow as bf
 import numpy as np

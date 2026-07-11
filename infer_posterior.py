@@ -6,7 +6,10 @@ observation array and save a quick diagnostic plot.
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
+
+os.environ.setdefault("MPLCONFIGDIR", "/private/tmp/matplotlib")
 
 import matplotlib
 matplotlib.use("Agg")
